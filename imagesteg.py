@@ -25,7 +25,7 @@ class datastream_in:
         self.esc = False
         self.finished = False
 
-    def next(self):
+    def get(self):
         if (self.esc == True):
             self.esc = False
             return self.f.read(1)[0]
@@ -39,6 +39,9 @@ class datastream_in:
             self.esc = True
             return 0x55
         return self.f.read(1)[0]
+
+    def is_finished(self):
+        return self.finished
 
     def close(self):
         self.f.close()
@@ -69,7 +72,7 @@ class randstream:
         self.hash = hashlib.sha256(password.encode())
         self.index = 0
 
-    def next(self):
+    def get(self):
         byte = self.hash.digest()[self.index]
         self.index = self.index + 1
         if (self.index == len(self.hash.digest())):
@@ -77,7 +80,7 @@ class randstream:
             self.index = 0
         return byte
 
-def getdata():
+def get_data():
     password = input("Password: ")
     filename = input("Save as: ")
     img = Image.open(sys.argv[1])
@@ -88,10 +91,10 @@ def getdata():
 
 if (len(sys.argv) == 3):
     print("Encode data")
-    password, filename, img_in = getdata()
+    password, filename, img_in = get_data()
     ds = datastream_in(sys.argv[2])
     rs = randstream(password)
-    b = ds.next() ^ rs.next()
+    b = ds.get() ^ rs.get()
     bs = 6
     img_out = Image.new("RGB", img_in.size)
     for y in range(img_out.height):
@@ -101,14 +104,17 @@ if (len(sys.argv) == 3):
                 p[i] = (p[i] & 0xFC) | ((b >> bs) & 0x03)
                 bs = bs - 2
                 if (bs < 0):
-                    b = ds.next() ^ rs.next()
+                    b = ds.get() ^ rs.get()
                     bs = 6
             img_out.putpixel((x,y), tuple(p))
+    if (ds.is_finished() == True):
+        img_out.save(filename)
+    else:
+        print("ERROR: Data does not fit in this image!")
     ds.close()
-    img_out.save(filename)
 elif (len(sys.argv) == 2):
     print("Decode data")
-    password, filename, img_in = getdata()
+    password, filename, img_in = get_data()
     ds = datastream_out(filename)
     rs = randstream(password)
     byte = 0
@@ -120,7 +126,7 @@ elif (len(sys.argv) == 2):
                 byte = (byte << 2) | (p & 0x03)
                 sc = sc + 1
                 if (sc == 4):
-                    plain = byte ^ rs.next()
+                    plain = byte ^ rs.get()
                     ds.put(plain)
                     byte = 0
                     sc = 0

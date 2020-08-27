@@ -14,12 +14,13 @@ Now let's hide some data inside:
     Password: steganography is cool
     Save as: modified.png
     $
-    
+
+**Important: Only use lossless image formats like png or bitmap for the resulting image, otherwise the hidden data will be destroyed.**
+
 The resulting image:
 
 ![modified](example/modified.png)
 
-**Important: Only use lossless image formats like png or bitmap for the resulting image, otherwise the hidden data will be destroyed.**
 Now let's recover the hidden data:
 
     $ python imagesteg.py modified.png 
@@ -29,3 +30,4 @@ Now let's recover the hidden data:
     $
     
 primes2.pdf is the exact same file as primes.pdf. Of course this only works with the same password as used before.
+
